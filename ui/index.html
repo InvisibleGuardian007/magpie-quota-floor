@@ -49,6 +49,7 @@
   .why { font-size: 12px; }
   .why.t0 { color: var(--green); } .why.t1 { color: var(--amber); } .why.t2, .why.t3 { color: var(--red); }
   code { font: 12px/1.5 "JetBrainsMono Nerd Font", ui-monospace, Consolas, monospace; background: var(--track); padding: 2px 6px; border-radius: 6px; }
+  .rid { margin-left: 6px; color: var(--muted); font: 11px/1.5 ui-monospace, Consolas, monospace; }
   .hint { color: var(--muted); font-size: 12px; margin: 8px 0 0; }
   ul.members { margin: 6px 0 0; padding: 0; list-style: none; display: flex; flex-wrap: wrap; gap: 6px; }
   ul.members li { white-space: nowrap; padding: 2px 8px; border-radius: 6px; background: var(--track); color: var(--muted); font: 12px/1.5 ui-monospace, Consolas, monospace; }
@@ -87,7 +88,7 @@
     <section class="card">
       <h2>路由现状</h2>
       <dl class="kv" id="routing"></dl>
-      <p class="hint">路由名 <code>floor/keep</code> 是 magpie 给插件路由的 id（插件目录名 + 策略名），它会原样显示在“路由”选择器里，不随界面语言翻译。</p>
+      <p class="hint">上面显示的是本页给这条路由起的中文名。magpie 的“路由”选择器里存的是路由 id（插件目录名 + 策略名，只允许 ASCII），它原样显示、不随界面语言翻译，所以那边仍会显示 <code>quota-floor/keep</code>。</p>
     </section>
 
     <section class="card">
@@ -117,6 +118,23 @@
     return '<div class="hint">重置于 ' + d.toLocaleString("zh-CN", { hour12: false }) + "</div>";
   }
 
+  function esc(v) {
+    return String(v === null || v === undefined ? "" : v).replace(/[&<>"]/g, function (ch) {
+      return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[ch];
+    });
+  }
+  // magpie stores route ids and shows them verbatim in its own pickers, so ids
+  // stay ASCII (plugin name / strategy name). The Chinese wording lives here, on
+  // the id beside it, so the two can still be matched up.
+  var ROUTE_NAMES = { "quota-floor/keep": "额度下限 · 保留余量" };
+  function routeText(g) {
+    var id = g.routing || "";
+    if (!id) return '<span class="hint">没有设置路由</span>';
+    var name = ROUTE_NAMES[id];
+    if (!name) return "<code>" + esc(id) + "</code>";
+    return "<code>" + esc(name) + '</code><span class="rid">' + esc(id) + "</span>";
+  }
+
   function render(s) {
     var badge = el("badge");
     if (!s.ok) {
@@ -131,7 +149,7 @@
       "<dt>下限 floor</dt><dd>留 " + s.floor + "% 余量（触发线 " + s.limit + "%）</dd>" +
       "<dt>缓冲 softCap</dt><dd>" + (s.softCap === null ? "未设" : s.softCap + "%") + "</dd>" +
       "<dt>读不到用量</dt><dd>排在已读到的席位后面</dd>";
-    el("ruleHint").innerHTML = "改参数：<code>magpie plugin options 'D:\\数据\\AI\\magpie-plugins\\floor' '{\"floor\":" + s.floor + ",\"softCap\":95}'</code>";
+    el("ruleHint").innerHTML = "改参数：<code>magpie plugin options 'D:\\数据\\AI\\magpie-plugins\\quota-floor' '{\"floor\":" + s.floor + ",\"softCap\":" + (s.softCap === null ? 95 : s.softCap) + "}'</code>";
 
     var rows = s.codex || [];
     el("seats").innerHTML = rows.length ? rows.map(function (r) {
@@ -147,7 +165,7 @@
     var g = (s.routing && s.routing.groups && s.routing.groups[0]) || null;
     el("routing").innerHTML = g
       ? "<dt>路由组</dt><dd>" + g.id + "</dd>" +
-        "<dt>路由</dt><dd><code>" + (g.routing || "—") + "</code></dd>" +
+        "<dt>路由</dt><dd>" + routeText(g) + "</dd>" +
         "<dt>会话粘性</dt><dd>" + (g.affinity || "auto") + "</dd>" +
         "<dt>分类模型</dt><dd>" + (g.classifier || "—") + "</dd>" +
         "<dt>成员</dt><dd>" + g.members.length + " 个 · " + g.rules + " 条规则</dd>" +
