@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>额度下限 Quota floor</title>
+  <style>
+    :root { color-scheme: light dark; }
+    html, body { height: 100%; margin: 0; }
+    body {
+      display: grid; place-items: center;
+      font: 13px/1.6 "Aptos", "Segoe UI Variable", "Noto Sans SC", "PingFang SC", sans-serif;
+      color: var(--magpie-fg, CanvasText); background: var(--magpie-bg, Canvas);
+    }
+    .waiting { display: grid; justify-items: center; gap: 10px; max-width: 460px; padding: 0 20px; color: var(--magpie-muted, GrayText); text-align: center; }
+    .waiting svg { width: 44px; height: 44px; }
+    .waiting b { color: var(--magpie-fg, CanvasText); font-size: 14px; font-weight: 600; }
+    .waiting b .en { margin-left: 6px; font-size: 12px; font-weight: 500; color: var(--magpie-muted, GrayText); }
+    .waiting button { margin-top: 4px; padding: 5px 14px; font: inherit; }
+  </style>
+</head>
+<body>
+  <div class="waiting">
+    <svg viewBox="0 0 128 128" aria-hidden="true">
+      <defs><linearGradient id="wg" x1="16" y1="10" x2="112" y2="118" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#f0a132"/><stop offset="1" stop-color="#e4662f"/></linearGradient></defs>
+      <rect x="34" y="30" width="60" height="68" rx="10" fill="none" stroke="url(#wg)" stroke-width="6"/>
+      <path d="M30 86h68" stroke="#e4662f" stroke-width="7" stroke-linecap="round"/>
+    </svg>
+    <b id="title">额度下限 <span class="en">Quota floor</span></b>
+    <div id="said">正在连接本地服务...</div>
+    <button id="retry" type="button" hidden>重试</button>
+  </div>
+  <script src="_magpie/bridge.js"></script>
+  <script src="boot.js"></script>
+</body>
+</html>

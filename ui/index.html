@@ -1,0 +1,179 @@
+<!doctype html>
+<html lang="zh-CN" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>额度下限 Quota floor</title>
+<style>
+  :root {
+    color-scheme: light;
+    --bg: #f5f6f8; --card: #ffffff; --fg: #14161a; --muted: #6b7280; --line: #e5e7eb;
+    --amber: #e08a1e; --red: #dc2626; --green: #16a34a; --track: #eceef2;
+  }
+  html[data-theme="dark"] {
+    color-scheme: dark;
+    --bg: #0f1115; --card: #171a20; --fg: #eceff4; --muted: #9aa3af; --line: #262b33;
+    --amber: #f0a132; --red: #f2645a; --green: #4ade80; --track: #232a33;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--fg);
+    font: 13px/1.6 "Aptos", "Segoe UI Variable", "Noto Sans SC", "PingFang SC", sans-serif; }
+  .page { max-width: 1180px; margin: 0 auto; padding: 22px 20px 48px; display: grid; gap: 16px; }
+  header { display: flex; align-items: center; gap: 14px; }
+  header img { width: 44px; height: 44px; }
+  h1 { margin: 0; font-size: 22px; font-weight: 700; letter-spacing: .3px; }
+  h1 .en { margin-left: 8px; font-size: 14px; font-weight: 600; color: var(--muted); }
+  .sub { margin: 2px 0 0; color: var(--muted); }
+  .badge { margin-left: auto; padding: 4px 12px; border-radius: 999px; font-size: 12px; font-weight: 600;
+    background: rgba(224,138,30,.12); color: var(--amber); }
+  .badge.bad { background: rgba(220,38,38,.12); color: var(--red); }
+  .badge.ok { background: rgba(22,163,74,.12); color: var(--green); }
+  .cards { display: grid; gap: 16px; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 16px 18px; }
+  .card h2 { margin: 0 0 10px; font-size: 13px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; color: var(--muted); }
+  .span2 { grid-column: 1 / -1; }
+  .kv { display: grid; grid-template-columns: 92px 1fr; gap: 6px 10px; font-size: 13px; }
+  .kv dt { color: var(--muted); }
+  .kv dd { margin: 0; font-variant-numeric: tabular-nums; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th { text-align: left; font-weight: 600; color: var(--muted); font-size: 12px; padding: 0 8px 8px 0; border-bottom: 1px solid var(--line); }
+  td { padding: 9px 8px 9px 0; border-bottom: 1px solid var(--line); vertical-align: top; font-variant-numeric: tabular-nums; }
+  tr:last-child td { border-bottom: 0; }
+  .acct { font-weight: 600; }
+  .plan { margin-left: 6px; font-size: 11px; font-weight: 600; padding: 1px 6px; border-radius: 6px; background: var(--track); color: var(--muted); }
+  .bar { position: relative; height: 6px; border-radius: 999px; background: var(--track); overflow: hidden; margin-top: 5px; }
+  .bar i { position: absolute; inset: 4px 0 0 0; }
+  .bar i { position: absolute; top: 0; left: 0; bottom: 0; background: var(--green); }
+  .bar i.warn { background: var(--amber); }
+  .bar i.hit { background: var(--red); }
+  .why { font-size: 12px; }
+  .why.t0 { color: var(--green); } .why.t1 { color: var(--amber); } .why.t2, .why.t3 { color: var(--red); }
+  code { font: 12px/1.5 "JetBrainsMono Nerd Font", ui-monospace, Consolas, monospace; background: var(--track); padding: 2px 6px; border-radius: 6px; }
+  .hint { color: var(--muted); font-size: 12px; margin: 8px 0 0; }
+  ul.members { margin: 6px 0 0; padding: 0; list-style: none; display: flex; flex-wrap: wrap; gap: 6px; }
+  ul.members li { white-space: nowrap; padding: 2px 8px; border-radius: 6px; background: var(--track); color: var(--muted); font: 12px/1.5 ui-monospace, Consolas, monospace; }
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 6px; }
+  .chip { padding: 3px 10px; border-radius: 999px; background: var(--track); font-size: 12px; }
+  .err { color: var(--red); font-size: 12px; }
+</style>
+</head>
+<body>
+<div class="page">
+  <header>
+    <img src="/icon.svg" alt="">
+    <div>
+      <h1>额度下限 <span class="en">Quota floor</span></h1>
+      <p class="sub">给每个席位留一点余量：用满的那一个排到最后，用不到就换别人。</p>
+    </div>
+    <span id="badge" class="badge">读取中</span>
+  </header>
+
+  <div class="cards">
+    <section class="card">
+      <h2>规则</h2>
+      <dl class="kv" id="rules"></dl>
+      <p class="hint" id="ruleHint"></p>
+    </section>
+
+    <section class="card span2">
+      <h2>codex 席位</h2>
+      <table>
+        <thead><tr><th>账号</th><th>5 小时</th><th>7 天</th><th>判定</th></tr></thead>
+        <tbody id="seats"><tr><td colspan="4" class="hint">读取中…</td></tr></tbody>
+      </table>
+      <p class="hint">“判定”是本插件给这个席位的排序层：还宽裕 → 接近下限 → 已到下限。判到下限的席位只在别的都不能答时才会被用到。</p>
+    </section>
+
+    <section class="card">
+      <h2>路由现状</h2>
+      <dl class="kv" id="routing"></dl>
+      <p class="hint">路由名 <code>floor/keep</code> 是 magpie 给插件路由的 id（插件目录名 + 策略名），它会原样显示在“路由”选择器里，不随界面语言翻译。</p>
+    </section>
+
+    <section class="card">
+      <h2>其它账号</h2>
+      <div class="chips" id="others"></div>
+      <p class="hint">这些账号也有额度窗口，但当前路由组只用 codex 的席位。</p>
+    </section>
+  </div>
+</div>
+<script>
+(function () {
+  var el = function (id) { return document.getElementById(id); };
+  var params = new URLSearchParams(location.search);
+  var theme = String(params.get("theme") || "");
+  if (theme === "dark" || theme === "light") document.documentElement.setAttribute("data-theme", theme);
+
+  function pct(v) { return v === null || v === undefined ? "—" : Math.round(v * 10) / 10 + "%"; }
+  function bar(left) {
+    var used = left === null ? 0 : Math.max(0, Math.min(100, 100 - left));
+    var cls = used >= 99 ? "hit" : used >= 95 ? "warn" : "";
+    return '<div class="bar"><i class="' + cls + '" style="width:' + used + '%"></i></div>';
+  }
+  function reset(at) {
+    if (!at) return "";
+    var d = new Date(at);
+    if (isNaN(d)) return "";
+    return '<div class="hint">重置于 ' + d.toLocaleString("zh-CN", { hour12: false }) + "</div>";
+  }
+
+  function render(s) {
+    var badge = el("badge");
+    if (!s.ok) {
+      badge.className = "badge bad";
+      badge.textContent = "网关没回应";
+    } else {
+      badge.className = "badge ok";
+      badge.textContent = "运行中";
+    }
+
+    el("rules").innerHTML =
+      "<dt>下限 floor</dt><dd>留 " + s.floor + "% 余量（触发线 " + s.limit + "%）</dd>" +
+      "<dt>缓冲 softCap</dt><dd>" + (s.softCap === null ? "未设" : s.softCap + "%") + "</dd>" +
+      "<dt>读不到用量</dt><dd>排在已读到的席位后面</dd>";
+    el("ruleHint").innerHTML = "改参数：<code>magpie plugin options 'D:\\数据\\AI\\magpie-plugins\\floor' '{\"floor\":" + s.floor + ",\"softCap\":95}'</code>";
+
+    var rows = s.codex || [];
+    el("seats").innerHTML = rows.length ? rows.map(function (r) {
+      return "<tr>" +
+        '<td><span class="acct">' + r.account + '</span>' + (r.plan ? '<span class="plan">' + r.plan + "</span>" : "") +
+          (r.error ? '<div class="err">' + r.error + "</div>" : "") + "</td>" +
+        "<td>" + pct(r.five && r.five.remaining) + bar(r.five && r.five.remaining) + reset(r.five && r.five.resetsAt) + "</td>" +
+        "<td>" + pct(r.week && r.week.remaining) + bar(r.week && r.week.remaining) + reset(r.week && r.week.resetsAt) + "</td>" +
+        '<td><div class="why t' + r.tier + '">' + r.why + "</div></td>" +
+        "</tr>";
+    }).join("") : '<tr><td colspan="4" class="hint">没有读到的 codex 账号</td></tr>';
+
+    var g = (s.routing && s.routing.groups && s.routing.groups[0]) || null;
+    el("routing").innerHTML = g
+      ? "<dt>路由组</dt><dd>" + g.id + "</dd>" +
+        "<dt>路由</dt><dd><code>" + (g.routing || "—") + "</code></dd>" +
+        "<dt>会话粘性</dt><dd>" + (g.affinity || "auto") + "</dd>" +
+        "<dt>分类模型</dt><dd>" + (g.classifier || "—") + "</dd>" +
+        "<dt>成员</dt><dd>" + g.members.length + " 个 · " + g.rules + " 条规则</dd>" +
+        '<dd><ul class="members">' + g.members.slice(0, 8).map(function (m) { return "<li>" + m + "</li>"; }).join("") + "</ul></dd>"
+      : "<dt>路由</dt><dd>读不到 providers.json</dd>";
+
+    var others = s.others || [];
+    el("others").innerHTML = others.length ? others.map(function (o) {
+      var w = (o.windows || []).map(function (x) { return x.name + " " + pct(x.remaining); }).join(" · ");
+      return '<span class="chip">' + (o.provider + " · " + o.account + (w ? " · " + w : "")) + "</span>";
+    }).join("") : '<span class="hint">没有其它账号</span>';
+  }
+
+  function load() {
+    fetch("/api/state", { headers: { accept: "application/json" } })
+      .then(function (r) { return r.json(); })
+      .then(render)
+      .catch(function () {
+        el("badge").className = "badge bad";
+        el("badge").textContent = "服务断开";
+      });
+  }
+
+  load();
+  setInterval(load, 20000);
+})();
+</script>
+</body>
+</html>

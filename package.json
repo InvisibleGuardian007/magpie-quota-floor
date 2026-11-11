@@ -1,0 +1,52 @@
+{
+  "name": "magpie-quota-floor",
+  "version": "0.3.0",
+  "description": "magpie 路由策略 + 页面：给每个席位留一点余量（默认留 1%），用满的那个排到最后。A magpie routing that keeps a floor of every seat's allowance, with a page that shows who would be picked and why.",
+  "type": "module",
+  "private": true,
+  "license": "MIT",
+  "magpie": {
+    "gateway": "./quota-floor.gateway.js",
+    "page": {
+      "title": "额度下限 Quota floor",
+      "titles": {
+        "zh": "额度下限 Quota floor",
+        "en": "Quota floor"
+      },
+      "file": "page/index.html",
+      "icon": "page/icon.svg",
+      "service": {
+        "port": 4396,
+        "option": "port"
+      }
+    },
+    "options": {
+      "floor": 1,
+      "softCap": 95,
+      "unknownLast": true,
+      "port": 4396
+    }
+  },
+  "main": "./index.mjs",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/InvisibleGuardian007/magpie-quota-floor"
+  },
+  "keywords": [
+    "magpie",
+    "magpie-plugin",
+    "routing",
+    "quota",
+    "codex",
+    "rate-limit",
+    "load-balancing"
+  ],
+  "files": [
+    "index.mjs",
+    "quota-floor.gateway.js",
+    "lib/",
+    "ui/",
+    "page/",
+    "README.md"
+  ]
+}
